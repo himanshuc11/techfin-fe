@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Lock, User, Shield } from "lucide-react"
+import { BASE_URL } from "@/app/constants/endpoints"
 
 interface LoginCredentials {
   username: string
@@ -22,18 +23,30 @@ interface LoginResponse {
   message?: string
 }
 
-// Mock API call - replace with your actual API endpoint
 const loginUser = async (credentials: LoginCredentials): Promise<LoginResponse> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  try {
+    const loginUrl = `${BASE_URL}/user/login`
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: credentials.username,
+        credential: credentials.password,
+        authenticationType: 'password'
+      }),
+    });
 
-  // Mock validation
-  if (credentials.username === "demo" && credentials.password === "password123") {
-    return { success: true, token: "mock-jwt-token" }
+    if (!response.ok) {
+      throw new Error('Login failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Login failed');
   }
-
-  throw new Error("Invalid username or password")
-}
+};
 
 export function LoginForm() {
   const [username, setUsername] = useState("")
@@ -43,11 +56,7 @@ export function LoginForm() {
 
   const loginMutation = useMutation({
     mutationFn: loginUser,
-    onSuccess: (data) => {
-      // Handle successful login
-      console.log("Login successful:", data)
-      // Store token and redirect to dashboard
-      localStorage.setItem("auth-token", data.token || "")
+    onSuccess: () => {
       window.location.href = "/dashboard"
     },
     onError: (error) => {
