@@ -69,7 +69,28 @@ const updateTransaction = async (data: Transaction): Promise<Transaction> => {
 }
 
 const deleteTransaction = async (id: number): Promise<void> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  const url = `${BASE_URL}/transaction/delete`
+
+  const payload = { transactionId: id } as Partial<Transaction>
+
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const responseData = await response.json();
+
+  if (!response.ok || responseData.error) {
+    throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
+  }
+
+
+  return {
+    ...responseData.data,
+  }
 }
 
 interface AddTransactionProps {
