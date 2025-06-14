@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   useReactTable,
@@ -18,6 +18,9 @@ import { format } from "date-fns"
 import { EditTransaction, DeleteTransaction } from "./transaction-actions"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Transaction, TransactionFilters } from "./transaction-dashboard"
+import { BASE_URL } from "@/app/constants/endpoints"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface TransactionTableProps {
   filters: TransactionFilters
@@ -32,47 +35,22 @@ interface PaginatedResponse {
 
 // Mock API function - replace with actual API call
 const fetchTransactions = async (cursor?: string, filters?: TransactionFilters): Promise<PaginatedResponse> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const url = `${BASE_URL}/transaction`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok || responseData.error) {
+    throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
+  }
 
   // Mock data
-  const allData: Transaction[] = [
-    {
-      id: 1,
-      payee: "Update kr vapids maine",
-      amount: "1000.00",
-      category: "World",
-      date: "2025-06-12",
-    },
-    {
-      id: 4,
-      payee: "Himanshu",
-      amount: "245.51",
-      category: "World",
-      date: "2025-06-12",
-    },
-    {
-      id: 5,
-      payee: "Amazon Purchase",
-      amount: "89.99",
-      category: "Shopping",
-      date: "2025-06-11",
-    },
-    {
-      id: 6,
-      payee: "Starbucks Coffee",
-      amount: "12.50",
-      category: "Food",
-      date: "2025-06-10",
-    },
-    {
-      id: 7,
-      payee: "Uber Ride",
-      amount: "25.75",
-      category: "Transport",
-      date: "2025-06-09",
-    },
-  ]
+  const allData: Transaction[] = responseData!.data;
+
 
   // Apply filters
   let filteredData = allData
@@ -118,11 +96,19 @@ const fetchTransactions = async (cursor?: string, filters?: TransactionFilters):
 export function TransactionTable({ filters }: TransactionTableProps) {
   const [cursor, setCursor] = useState<string>()
   const [sorting, setSorting] = useState<SortingState>([])
+  const router = useRouter();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transactions", cursor, filters],
     queryFn: () => fetchTransactions(cursor, filters),
   })
+
+  useEffect(() => {
+    if(error) {
+     toast.error(error.message + " Need to sign up to view dashboard")
+    router.push("/")
+    }
+  }, [error])
 
   const columns: ColumnDef<Transaction>[] = useMemo(
     () => [
