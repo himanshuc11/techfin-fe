@@ -17,10 +17,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { TransactionForm } from "./transaction-form"
 import type { Transaction } from "./transaction-dashboard"
-import { format } from "date-fns"
 import { BASE_URL } from "@/app/constants/endpoints"
 
-// Mock API functions - replace with actual API calls
 const addTransaction = async (data: Omit<Transaction, "id">): Promise<Transaction> => {
   const url = `${BASE_URL}/transaction/add`
 
@@ -45,8 +43,29 @@ const addTransaction = async (data: Omit<Transaction, "id">): Promise<Transactio
 }
 
 const updateTransaction = async (data: Transaction): Promise<Transaction> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-  return data
+  const url = `${BASE_URL}/transaction/update`
+
+  const payload = { ...data, transactionId: data.id } as Partial<Transaction>
+  delete payload["id"]
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const responseData = await response.json();
+
+  if (!response.ok || responseData.error) {
+    throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
+  }
+
+
+  return {
+    ...responseData.data
+  }
 }
 
 const deleteTransaction = async (id: number): Promise<void> => {
@@ -123,7 +142,7 @@ export function EditTransaction({ transaction, onSuccess }: EditTransactionProps
       payee: data.payee,
       amount: data.amount,
       category: data.category,
-      date: format(data.date, "yyyy-MM-dd"),
+      date: data.date.toISOString(),
     })
   }
 
@@ -139,7 +158,7 @@ export function EditTransaction({ transaction, onSuccess }: EditTransactionProps
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-w-xs">
           <DialogHeader>
             <DialogTitle>Edit Transaction</DialogTitle>
             <DialogDescription>Update the transaction details.</DialogDescription>
