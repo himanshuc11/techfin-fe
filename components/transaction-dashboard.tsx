@@ -89,7 +89,7 @@ export function TransactionDashboard() {
 
   const handleDownloadAll = async () => {
     const queryString = buildQueryString("", filters);
-    const url = `${BASE_URL}/transaction${queryString}/download`;
+    const url = `${BASE_URL}/transaction/download${queryString}`;
 
     const response = await fetch(url, {
       method: 'GET',
