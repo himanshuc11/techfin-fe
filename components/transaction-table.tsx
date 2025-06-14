@@ -81,10 +81,8 @@ export function TransactionTable({ filters }: TransactionTableProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transactions", cursor, filters],
     queryFn: () => fetchTransactions(cursor, filters),
-    placeholderData: (prevData) => prevData
   })
 
-  console.log('::DATA', data)
 
   useEffect(() => {
     if(error) {
