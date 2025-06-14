@@ -7,6 +7,9 @@ import { AddTransactionButton } from "./transaction-actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Download, LogOut, TrendingUp, DollarSign, Calendar, Users } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
+import { BASE_URL } from "@/app/constants/endpoints"
+import { toast } from "sonner"
 
 export interface Transaction {
   id: number
@@ -25,13 +28,42 @@ export interface TransactionFilters {
   dateTo?: string
 }
 
+const logoutUser = async () => {
+  try {
+    const logoutUrl = `${BASE_URL}/user/logout`
+
+    const response = await fetch(logoutUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: "include",
+      redirect: "follow"
+    });
+  
+   console.log(response)
+  } catch(error) {
+    console.error(':ERROR', error)
+    throw new Error(error instanceof Error ? error.message : 'Logout failed');
+  }
+}
+
 export function TransactionDashboard() {
   const [filters, setFilters] = useState<TransactionFilters>({})
 
-  const handleLogout = () => {
-    localStorage.removeItem("auth-token")
-    window.location.href = "/"
-  }
+  
+  const logoutMutation = useMutation({
+    mutationFn: logoutUser,
+    onSuccess: () => {
+      window.location.href = "/"
+    },
+    onError: (error) => {
+      toast.error("Logout Failed");
+      console.error("Logout failed:", error)
+    },
+  })
+
+  const handleLogout = () => logoutMutation.mutate();
 
   const handleDownloadAll = async () => {
     // Mock download functionality - replace with actual API call

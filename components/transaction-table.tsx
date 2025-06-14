@@ -122,7 +122,6 @@ export function TransactionTable({ filters }: TransactionTableProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transactions", cursor, filters],
     queryFn: () => fetchTransactions(cursor, filters),
-    keepPreviousData: true,
   })
 
   const columns: ColumnDef<Transaction>[] = useMemo(
