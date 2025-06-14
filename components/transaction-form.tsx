@@ -15,9 +15,7 @@ import type { Transaction } from "./transaction-dashboard"
 
 const formSchema = z.object({
   payee: z.string().min(2, { message: "Payee must be at least 2 characters." }),
-  amount: z.string().refine((val) => !isNaN(Number.parseFloat(val)) && Number.parseFloat(val) > 0, {
-    message: "Amount must be a positive number.",
-  }),
+  amount: z.number().multipleOf(0.01).positive(),
   category: z.string().min(1, { message: "Please select a category." }),
   date: z.date({
     required_error: "Please select a date.",
@@ -64,7 +62,7 @@ export function TransactionForm({ transaction, onSubmit, isSubmitting }: Transac
             <FormItem>
               <FormLabel>Payee</FormLabel>
               <FormControl>
-                <Input placeholder="Enter payee name" {...field} />
+                <Input placeholder="Enter payee name" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -77,9 +75,20 @@ export function TransactionForm({ transaction, onSubmit, isSubmitting }: Transac
           render={({ field }) => (
             <FormItem>
               <FormLabel>Amount</FormLabel>
-              <FormControl>
-                <Input placeholder="0.00" {...field} />
-              </FormControl>
+                <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  {...field}
+                  onChange={(e) => {
+                  const value = e.target.value;
+                  field.onChange(value === '' ? '' : parseFloat(value));
+                  }}
+                  disabled={isSubmitting}
+                />
+                </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -91,7 +100,7 @@ export function TransactionForm({ transaction, onSubmit, isSubmitting }: Transac
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
@@ -133,7 +142,7 @@ export function TransactionForm({ transaction, onSubmit, isSubmitting }: Transac
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01") || isSubmitting}
                     initialFocus
                   />
                 </PopoverContent>

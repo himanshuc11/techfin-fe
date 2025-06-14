@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   useReactTable,
@@ -18,6 +18,9 @@ import { format } from "date-fns"
 import { EditTransaction, DeleteTransaction } from "./transaction-actions"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Transaction, TransactionFilters } from "./transaction-dashboard"
+import { BASE_URL } from "@/app/constants/endpoints"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface TransactionTableProps {
   filters: TransactionFilters
@@ -25,105 +28,68 @@ interface TransactionTableProps {
 
 interface PaginatedResponse {
   data: Transaction[]
-  nextCursor?: string
-  hasMore: boolean
+  nextCursor: number | null
+  previousCursor: number | null 
   total: number
 }
 
-// Mock API function - replace with actual API call
+export const buildQueryString = (cursor?: string, filters?: TransactionFilters): string => {
+  const params = new URLSearchParams();
+
+  if (cursor) params.append('cursor', cursor);
+  if (filters?.payee) params.append('payee', filters.payee);
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.minAmount) params.append('minAmount', filters.minAmount.toString());
+  if (filters?.maxAmount) params.append('maxAmount', filters.maxAmount.toString());
+  if (filters?.dateFrom) params.append('dateFrom', new Date(filters.dateFrom)?.toISOString());
+  if (filters?.dateTo) params.append('dateTo', new Date(filters.dateTo)?.toISOString());
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
 const fetchTransactions = async (cursor?: string, filters?: TransactionFilters): Promise<PaginatedResponse> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const queryString = buildQueryString(cursor, filters);
+  const url = `${BASE_URL}/transaction${queryString}`;
 
-  // Mock data
-  const allData: Transaction[] = [
-    {
-      id: 1,
-      payee: "Update kr vapids maine",
-      amount: "1000.00",
-      category: "World",
-      date: "2025-06-12",
-    },
-    {
-      id: 4,
-      payee: "Himanshu",
-      amount: "245.51",
-      category: "World",
-      date: "2025-06-12",
-    },
-    {
-      id: 5,
-      payee: "Amazon Purchase",
-      amount: "89.99",
-      category: "Shopping",
-      date: "2025-06-11",
-    },
-    {
-      id: 6,
-      payee: "Starbucks Coffee",
-      amount: "12.50",
-      category: "Food",
-      date: "2025-06-10",
-    },
-    {
-      id: 7,
-      payee: "Uber Ride",
-      amount: "25.75",
-      category: "Transport",
-      date: "2025-06-09",
-    },
-  ]
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
 
-  // Apply filters
-  let filteredData = allData
+  const responseData = await response.json();
 
-  if (filters?.payee) {
-    filteredData = filteredData.filter((item) => item.payee.toLowerCase().includes(filters.payee!.toLowerCase()))
+  if (!response.ok || responseData.error) {
+    throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
   }
 
-  if (filters?.minAmount) {
-    filteredData = filteredData.filter((item) => Number.parseFloat(item.amount) >= filters.minAmount!)
-  }
-
-  if (filters?.maxAmount) {
-    filteredData = filteredData.filter((item) => Number.parseFloat(item.amount) <= filters.maxAmount!)
-  }
-
-  if (filters?.category) {
-    filteredData = filteredData.filter((item) => item.category === filters.category)
-  }
-
-  if (filters?.dateFrom) {
-    filteredData = filteredData.filter((item) => item.date >= filters.dateFrom!)
-  }
-
-  if (filters?.dateTo) {
-    filteredData = filteredData.filter((item) => item.date <= filters.dateTo!)
-  }
-
-  // Simulate cursor-based pagination
-  const pageSize = 10
-  const startIndex = cursor ? Number.parseInt(cursor) : 0
-  const endIndex = startIndex + pageSize
-  const paginatedData = filteredData.slice(startIndex, endIndex)
+  const transactions: Transaction[] = responseData!.data?.transactions;
 
   return {
-    data: paginatedData,
-    nextCursor: endIndex < filteredData.length ? endIndex.toString() : undefined,
-    hasMore: endIndex < filteredData.length,
-    total: filteredData.length,
+    data: transactions,
+    nextCursor: responseData?.data?.nextCursor,
+    previousCursor: responseData?.data?.previousCursor,
+    total: responseData?.data?.totalResult,
   }
 }
 
 export function TransactionTable({ filters }: TransactionTableProps) {
   const [cursor, setCursor] = useState<string>()
   const [sorting, setSorting] = useState<SortingState>([])
+  const router = useRouter();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transactions", cursor, filters],
     queryFn: () => fetchTransactions(cursor, filters),
-    keepPreviousData: true,
   })
+
+
+  useEffect(() => {
+    if(error) {
+      toast.error(error.message + " Need to sign up to view dashboard")
+      // router.push("/")
+    }
+  }, [error])
 
   const columns: ColumnDef<Transaction>[] = useMemo(
     () => [
@@ -337,14 +303,14 @@ export function TransactionTable({ filters }: TransactionTableProps) {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-600">
-          {data?.total ? `Showing ${data.data.length} of ${data.total} transactions` : ""}
+         Showing {data?.data?.length} of {data?.total} transactions
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCursor(undefined)}
-            disabled={!cursor || isLoading}
+            onClick={() => setCursor(String(data?.previousCursor))}
+            disabled={!data?.previousCursor || isLoading}
             className="border-slate-300 hover:bg-slate-50"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -353,8 +319,8 @@ export function TransactionTable({ filters }: TransactionTableProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCursor(data?.nextCursor)}
-            disabled={!data?.hasMore || isLoading}
+            onClick={() => setCursor(String(data?.nextCursor))}
+            disabled={!data?.nextCursor || isLoading}
             className="border-slate-300 hover:bg-slate-50"
           >
             Next

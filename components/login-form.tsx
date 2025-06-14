@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Lock, User, Shield } from "lucide-react"
 import { BASE_URL } from "@/app/constants/endpoints"
+import { toast } from "sonner"
 
 interface LoginCredentials {
   username: string
@@ -31,6 +32,7 @@ const loginUser = async (credentials: LoginCredentials): Promise<LoginResponse> 
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         username: credentials.username,
         credential: credentials.password,
@@ -60,6 +62,7 @@ export function LoginForm() {
       window.location.href = "/dashboard"
     },
     onError: (error) => {
+      toast.error("Login failed")
       console.error("Login failed:", error)
     },
   })

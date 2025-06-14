@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { QueryProvider } from "@/components/providers/query-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "SecureFinance - Login",
+  title: "TechFin - Login",
   description: "Secure login for your financial account",
 }
 
@@ -22,8 +23,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
       <body className={`${inter.className} antialiased`}>
         <QueryProvider>{children}</QueryProvider>
+        <Toaster richColors />
       </body>
     </html>
   )
