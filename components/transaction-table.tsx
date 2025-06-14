@@ -67,9 +67,9 @@ const fetchTransactions = async (cursor?: string, filters?: TransactionFilters):
 
   return {
     data: transactions,
-    nextCursor: responseData?.nextCursor,
-    previousCursor: responseData?.previousCursor,
-    total: responseData.totalResult,
+    nextCursor: responseData?.data?.nextCursor,
+    previousCursor: responseData?.data?.previousCursor,
+    total: responseData?.data?.totalResult,
   }
 }
 
@@ -81,12 +81,15 @@ export function TransactionTable({ filters }: TransactionTableProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["transactions", cursor, filters],
     queryFn: () => fetchTransactions(cursor, filters),
+    placeholderData: (prevData) => prevData
   })
+
+  console.log('::DATA', data)
 
   useEffect(() => {
     if(error) {
-     toast.error(error.message + " Need to sign up to view dashboard")
-    router.push("/")
+      toast.error(error.message + " Need to sign up to view dashboard")
+      // router.push("/")
     }
   }, [error])
 
@@ -302,14 +305,14 @@ export function TransactionTable({ filters }: TransactionTableProps) {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-600">
-          {data?.total ? `Showing ${data.data.length} of ${data.total} transactions` : ""}
+         Showing {data?.data?.length} of {data?.total} transactions
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCursor(undefined)}
-            disabled={!cursor || isLoading}
+            onClick={() => setCursor(String(data?.previousCursor))}
+            disabled={!data?.previousCursor || isLoading}
             className="border-slate-300 hover:bg-slate-50"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -318,8 +321,8 @@ export function TransactionTable({ filters }: TransactionTableProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCursor(data?.nextCursor)}
-            disabled={!data?.hasMore || isLoading}
+            onClick={() => setCursor(String(data?.nextCursor))}
+            disabled={!data?.nextCursor || isLoading}
             className="border-slate-300 hover:bg-slate-50"
           >
             Next
