@@ -34,7 +34,7 @@ export function TransactionFiltersComponent({ filters, onFiltersChange }: Transa
     setDateTo(undefined)
   }
 
-  const categories = ["World", "Food", "Transport", "Entertainment", "Utilities", "Healthcare"]
+  const categories = ["World", "Food", "Transport"]
 
   return (
     <div className="space-y-4">

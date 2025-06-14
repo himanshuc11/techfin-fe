@@ -28,14 +28,29 @@ interface TransactionTableProps {
 
 interface PaginatedResponse {
   data: Transaction[]
-  nextCursor?: string
-  hasMore: boolean
+  nextCursor: number | null
+  previousCursor: number | null 
   total: number
 }
 
-// Mock API function - replace with actual API call
+const buildQueryString = (cursor?: string, filters?: TransactionFilters): string => {
+  const params = new URLSearchParams();
+
+  if (cursor) params.append('cursor', cursor);
+  if (filters?.payee) params.append('payee', filters.payee);
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.minAmount) params.append('minAmount', filters.minAmount.toString());
+  if (filters?.maxAmount) params.append('maxAmount', filters.maxAmount.toString());
+  if (filters?.dateFrom) params.append('dateFrom', new Date(filters.dateFrom)?.toISOString());
+  if (filters?.dateTo) params.append('dateTo', new Date(filters.dateTo)?.toISOString());
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
 const fetchTransactions = async (cursor?: string, filters?: TransactionFilters): Promise<PaginatedResponse> => {
-  const url = `${BASE_URL}/transaction`
+  const queryString = buildQueryString(cursor, filters);
+  const url = `${BASE_URL}/transaction${queryString}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -48,48 +63,13 @@ const fetchTransactions = async (cursor?: string, filters?: TransactionFilters):
     throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
   }
 
-  // Mock data
-  const allData: Transaction[] = responseData!.data;
-
-
-  // Apply filters
-  let filteredData = allData
-
-  if (filters?.payee) {
-    filteredData = filteredData.filter((item) => item.payee.toLowerCase().includes(filters.payee!.toLowerCase()))
-  }
-
-  if (filters?.minAmount) {
-    filteredData = filteredData.filter((item) => Number.parseFloat(item.amount) >= filters.minAmount!)
-  }
-
-  if (filters?.maxAmount) {
-    filteredData = filteredData.filter((item) => Number.parseFloat(item.amount) <= filters.maxAmount!)
-  }
-
-  if (filters?.category) {
-    filteredData = filteredData.filter((item) => item.category === filters.category)
-  }
-
-  if (filters?.dateFrom) {
-    filteredData = filteredData.filter((item) => item.date >= filters.dateFrom!)
-  }
-
-  if (filters?.dateTo) {
-    filteredData = filteredData.filter((item) => item.date <= filters.dateTo!)
-  }
-
-  // Simulate cursor-based pagination
-  const pageSize = 10
-  const startIndex = cursor ? Number.parseInt(cursor) : 0
-  const endIndex = startIndex + pageSize
-  const paginatedData = filteredData.slice(startIndex, endIndex)
+  const transactions: Transaction[] = responseData!.data?.transactions;
 
   return {
-    data: paginatedData,
-    nextCursor: endIndex < filteredData.length ? endIndex.toString() : undefined,
-    hasMore: endIndex < filteredData.length,
-    total: filteredData.length,
+    data: transactions,
+    nextCursor: responseData?.nextCursor,
+    previousCursor: responseData?.previousCursor,
+    total: responseData.totalResult,
   }
 }
 
