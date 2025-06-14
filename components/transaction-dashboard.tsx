@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TransactionTable } from "./transaction-table"
+import { buildQueryString, TransactionTable } from "./transaction-table"
 import { TransactionFiltersComponent } from "./transaction-filters"
 import { AddTransactionButton } from "./transaction-actions"
 import { Button } from "@/components/ui/button"
@@ -65,39 +65,44 @@ export function TransactionDashboard() {
 
   const handleLogout = () => logoutMutation.mutate();
 
+  function downloadExcelFromBase64(base64Data: string, fileName = "file.xlsx") {
+    // Decode base64
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = Array.from(byteCharacters, char => char.charCodeAt(0));
+    const byteArray = new Uint8Array(byteNumbers);
+  
+    // Create a Blob with Excel MIME type
+    const blob = new Blob([byteArray], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  
+    // Create a URL and trigger download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url); // Cleanup
+  }
+
   const handleDownloadAll = async () => {
-    // Mock download functionality - replace with actual API call
-    const allData = [
-      {
-        id: 1,
-        payee: "Update kr vapids maine",
-        amount: "1000.00",
-        category: "World",
-        date: "2025-06-12",
-      },
-      {
-        id: 4,
-        payee: "Himanshu",
-        amount: "245.51",
-        category: "World",
-        date: "2025-06-12",
-      },
-    ]
+    const queryString = buildQueryString("", filters);
+    const url = `${BASE_URL}/transaction${queryString}/download`;
 
-    const csvContent = [
-      ["ID", "Payee", "Amount", "Category", "Date"],
-      ...allData.map((row) => [row.id, row.payee, row.amount, row.category, row.date]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n")
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    const responseData = await response.json();
+
+    if (!response.ok || responseData.error) {
+      throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
+    }
+
+    downloadExcelFromBase64(responseData!.data!.content, responseData!.data!.filename)
   }
 
   return (

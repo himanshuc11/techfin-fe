@@ -33,7 +33,7 @@ interface PaginatedResponse {
   total: number
 }
 
-const buildQueryString = (cursor?: string, filters?: TransactionFilters): string => {
+export const buildQueryString = (cursor?: string, filters?: TransactionFilters): string => {
   const params = new URLSearchParams();
 
   if (cursor) params.append('cursor', cursor);
