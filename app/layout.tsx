@@ -23,6 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
       <body className={`${inter.className} antialiased`}>
         <QueryProvider>{children}</QueryProvider>
         <Toaster richColors />
