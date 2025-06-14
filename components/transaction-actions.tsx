@@ -17,14 +17,30 @@ import {
 } from "@/components/ui/alert-dialog"
 import { TransactionForm } from "./transaction-form"
 import type { Transaction } from "./transaction-dashboard"
-import { format } from "date-fns" // Import format from date-fns
+import { format } from "date-fns"
+import { BASE_URL } from "@/app/constants/endpoints"
 
 // Mock API functions - replace with actual API calls
 const addTransaction = async (data: Omit<Transaction, "id">): Promise<Transaction> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  const url = `${BASE_URL}/transaction/add`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  const responseData = await response.json();
+
+  if (!response.ok || responseData.error) {
+    throw new Error(responseData.error.errorMessage || 'Failed to fetch transactions');
+  }
+
+
   return {
-    id: Math.floor(Math.random() * 1000),
-    ...data,
+    ...responseData.data
   }
 }
 
@@ -59,7 +75,7 @@ export function AddTransactionButton({ onSuccess }: AddTransactionProps) {
       payee: data.payee,
       amount: data.amount,
       category: data.category,
-      date: format(data.date, "yyyy-MM-dd"),
+      date: data.date.toISOString(),
     })
   }
 
